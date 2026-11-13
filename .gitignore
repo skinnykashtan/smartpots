@@ -1,0 +1,6 @@
+build/
+sdkconfig
+.cache/
+dependencies.lock
+managed_components/
+.idea/
