@@ -1,69 +1,114 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
+# SmartPots Gateway
 
-# Blink Example
+SmartPots Gateway is the network-facing component of the SmartPots system. It runs on an ESP32 microcontroller, is built with the ESP-IDF framework and written in C++. The gateway connects to a local Wi-Fi network in station (STA) mode, providing the network link for the rest of the system.
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Features
 
-This example demonstrates how to blink a LED by using the GPIO driver or using the [led_strip](https://components.espressif.com/component/espressif/led_strip) library if the LED is addressable e.g. [WS2812](https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf). The `led_strip` library is installed via [component manager](main/idf_component.yml).
+- Wi-Fi connection in station mode with WPA2-PSK security
+- Automatic reconnection with a configurable retry limit
+- Network credentials configurable through `menuconfig`, with no changes to the source code
+- Event-driven connection handling based on the ESP-IDF event loop and FreeRTOS event groups
+- Automatic recovery of the NVS partition on startup
 
-## How to Use Example
+## Project Structure
 
-Before project configuration and build, be sure to set the correct chip target using `idf.py set-target <chip_name>`.
-
-### Hardware Required
-
-* A development board with normal LED or addressable LED on-board (e.g., ESP32-S3-DevKitC, ESP32-C6-DevKitC etc.)
-* A USB cable for Power supply and programming
-
-See [Development Boards](https://www.espressif.com/en/products/devkits) for more information about it.
-
-### Configure the Project
-
-Open the project configuration menu (`idf.py menuconfig`).
-
-In the `Example Configuration` menu:
-
-* Select the LED type in the `Blink LED type` option.
-  * Use `GPIO` for regular LED
-  * Use `LED strip` for addressable LED
-* If the LED type is `LED strip`, select the backend peripheral
-  * `RMT` is only available for ESP targets with RMT peripheral supported
-  * `SPI` is available for all ESP targets
-* Set the GPIO number used for the signal in the `Blink GPIO number` option.
-* Set the blinking period in the `Blink period in ms` option.
-
-### Build and Flash
-
-Run `idf.py -p PORT flash monitor` to build, flash and monitor the project.
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the [Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for full steps to configure and use ESP-IDF to build projects.
-
-## Example Output
-
-As you run the example, you will see the LED blinking, according to the previously defined period. For the addressable LED, you can also change the LED color by setting the `led_strip_set_pixel(led_strip, 0, 16, 16, 16);` (LED Strip, Pixel Number, Red, Green, Blue) with values from 0 to 255 in the [source file](main/blink_example_main.c).
-
-```text
-I (315) example: Example configured to blink addressable LED!
-I (325) example: Turning the LED OFF!
-I (1325) example: Turning the LED ON!
-I (2325) example: Turning the LED OFF!
-I (3325) example: Turning the LED ON!
-I (4325) example: Turning the LED OFF!
-I (5325) example: Turning the LED ON!
-I (6325) example: Turning the LED OFF!
-I (7325) example: Turning the LED ON!
-I (8325) example: Turning the LED OFF!
+```
+main/
+├── CMakeLists.txt          # Component registration and source list
+├── idf_component.yml       # Component Manager dependencies
+├── Kconfig.projbuild       # "SmartPots configuration" menu for menuconfig
+├── main.cpp                # Application entry point (app_main)
+├── wifi_connection.h       # Wi-Fi module public interface
+└── wifi_connection.cpp     # Wi-Fi station mode implementation
 ```
 
-Note: The color order could be different according to the LED model.
+## Architecture
 
-The pixel number indicates the pixel position in the LED strip. For a single LED, use 0.
+### Application Entry Point – `main.cpp`
 
-## Troubleshooting
+`app_main()` performs the startup sequence:
 
-* If the LED isn't blinking, check the GPIO or the LED type selection in the `Example Configuration` menu.
+1. **NVS initialization** - initializes non-volatile storage, which the Wi-Fi driver requires. If the partition has no free pages or uses an outdated format version, it is erased and initialized again.
+2. **Network connection** - calls `wifi::wifi_init_sta()` to connect the device to the configured access point.
 
-For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you soon.
+### Wi-Fi Module – `wifi_connection.h` / `wifi_connection.cpp`
+
+The module lives in the `wifi` namespace. Its internal state and the event handler are kept in an anonymous namespace, so they are not visible to other translation units.
+
+#### Public API
+
+```cpp
+namespace wifi {
+    bool wifi_init_sta();
+}
+```
+
+| Return value | Meaning |
+| --- | --- |
+| `true` | The device connected to the access point and obtained an IP address |
+| `false` | The connection failed after the maximum number of retries |
+
+The call is **blocking**: it returns only once the connection either succeeds or definitively fails.
+
+#### Initialization Sequence
+
+1. Creates a FreeRTOS event group that signals the connection result through two bits: `WIFI_CONNECTED_BIT` and `WIFI_FAIL_BIT`.
+2. Initializes the TCP/IP stack (`esp_netif_init`), the default event loop and the default station network interface.
+3. Initializes the Wi-Fi driver with the default configuration (`WIFI_INIT_CONFIG_DEFAULT`).
+4. Registers the event handler for all `WIFI_EVENT` events and for `IP_EVENT_STA_GOT_IP`.
+5. Applies the configured SSID and password and sets WPA2-PSK as the minimum accepted security mode.
+6. Switches the driver to station mode and starts it.
+7. Waits until the connection succeeds or fails.
+
+#### Event Handling
+
+| Event | Action |
+| --- | --- |
+| `WIFI_EVENT_STA_START` | Starts connecting to the access point |
+| `WIFI_EVENT_STA_DISCONNECTED` | Retries the connection until the retry limit is reached, then sets `WIFI_FAIL_BIT` |
+| `IP_EVENT_STA_GOT_IP` | Logs the assigned IP address and netmask, resets the retry counter and sets `WIFI_CONNECTED_BIT` |
+
+## Configuration
+
+Network settings are defined in `main/Kconfig.projbuild` and set with `idf.py menuconfig` under **SmartPots configuration**:
+
+| Option | Kconfig symbol | Default | Description |
+| --- | --- | --- | --- |
+| WiFi SSID | `CONFIG_ESP_WIFI_SSID` | `""` | Name of the Wi-Fi network |
+| WiFi Password | `CONFIG_ESP_WIFI_PASSWORD` | `""` | Password of the Wi-Fi network |
+| Maximum retry | `CONFIG_ESP_MAXIMUM_RETRY` | `5` | Number of reconnection attempts before giving up |
+
+> **Note:** The values are stored in plain text in `sdkconfig`. Do not publish this file with real credentials.
+
+## Requirements
+
+- ESP32 development board
+- ESP-IDF v5.3 or newer
+- USB cable for flashing and power supply
+
+## Build and Flash
+
+```bash
+idf.py set-target esp32
+idf.py menuconfig
+idf.py build
+idf.py -p /dev/ttyUSB0 flash monitor
+```
+
+Replace `/dev/ttyUSB0` with the serial port of your board.
+
+## Logging
+
+| Tag | Source |
+| --- | --- |
+| `MAIN` | `main.cpp` |
+| `WIFI` | `wifi_connection.cpp` |
+
+Example output after a successful connection:
+
+```
+I (...) MAIN: ESP_WIFI_MODE_STA
+I (...) WIFI: wifi_init_sta finished
+I (...) WIFI: got ip:192.168.1.42 | Mask:255.255.255.0
+I (...) WIFI: connected to AP SSID: <your-ssid>
+```
