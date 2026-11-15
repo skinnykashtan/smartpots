@@ -9,6 +9,10 @@ namespace mqtt {
 
     namespace {
 
+        void mqtt_publisher_task(void* arg);
+
+        QueueHandle_t measurement_queue = nullptr;
+
         constexpr EventBits_t MQTT_CONNECTED_BIT = BIT0;
 
         esp_mqtt_client_config_t mqtt_cfg = {
@@ -32,15 +36,6 @@ namespace mqtt {
                 case MQTT_EVENT_CONNECTED:
                     ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
                     xEventGroupSetBits(mqtt_event_group, MQTT_CONNECTED_BIT);
-                    msg_id = esp_mqtt_client_publish(
-                        client,
-                        "smartpots/bathroom/plant1",
-                        "42",
-                        0,
-                        1,
-                        1
-                        );
-                    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
                     break;
                 case MQTT_EVENT_DISCONNECTED:
                     xEventGroupClearBits(mqtt_event_group, MQTT_CONNECTED_BIT);
@@ -61,27 +56,79 @@ namespace mqtt {
 
     }
 
-    void mqtt_init() {
+    bool mqtt_init() {
         mqtt_event_group = xEventGroupCreate();
 
         client = esp_mqtt_client_init(&mqtt_cfg);
         if (client == nullptr) {
             ESP_LOGI(TAG, "Client Initialization failed");
-            return;
+            return false;
         }
 
         ESP_ERROR_CHECK(esp_mqtt_client_register_event(client, static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID), mqtt_event_handler, client));
         ESP_ERROR_CHECK(esp_mqtt_client_start(client));
 
-        xEventGroupWaitBits(
-            mqtt_event_group,
-            MQTT_CONNECTED_BIT,
-            pdFALSE,
-            pdTRUE,
-            portMAX_DELAY
-            );
+        ESP_LOGI(TAG, "client started");
+        return true;
+    }
 
-       ESP_LOGI(TAG, "Connected to the broker");
+    void measurement_queue_init() {
+        measurement_queue = xQueueCreate(
+            5,
+            sizeof(Message)
+        );
+
+        configASSERT(measurement_queue != nullptr);
+    }
+
+    void mqtt_publisher_init() {
+        BaseType_t ret = xTaskCreate(
+            mqtt_publisher_task,
+            "mqtt_publisher",
+            4096,
+            measurement_queue,
+            5,
+            nullptr
+        );
+
+        configASSERT(ret == pdPASS);
+    }
+
+    bool enqueue_measurement(const Message& message) {
+        return xQueueSend(
+            measurement_queue,
+            &message,
+            0
+            ) == pdPASS;
+    }
+
+    namespace {
+
+        void mqtt_publisher_task(void* arg) {
+            auto queue = static_cast<QueueHandle_t>(arg);
+            Message message;
+
+            while (true) {
+                BaseType_t ret = xQueueReceive(
+                    queue,
+                    &message,
+                    portMAX_DELAY
+                );
+
+                configASSERT(ret == pdPASS);
+
+                xEventGroupWaitBits(
+                mqtt_event_group,
+                MQTT_CONNECTED_BIT,
+                pdFALSE,
+                pdTRUE,
+                portMAX_DELAY
+                );
+
+                esp_mqtt_client_publish(client, "smartpots/saloon/plant1", message.data, 0, 1, true);
+            }
+        }
+
     }
 
 }

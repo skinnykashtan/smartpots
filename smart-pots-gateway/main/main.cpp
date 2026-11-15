@@ -3,6 +3,23 @@
 #include "esp_log.h"
 #include "mqtt_connection.h"
 #include "wifi_connection.h"
+#include "measurement.h"
+
+Message message1 {
+    .plant_id = 1,
+    .data = "33"
+};
+
+Message message2 {
+    .plant_id = 2,
+    .data = "22"
+};
+
+Message message3 {
+    .plant_id = 3,
+    .data = "11"
+};
+
 
 namespace {
     constexpr const char* TAG = "MAIN";
@@ -18,5 +35,12 @@ extern "C" void app_main(void) {
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi::wifi_init_sta();
+
+    mqtt::measurement_queue_init();
     mqtt::mqtt_init();
+    mqtt::mqtt_publisher_init();
+
+    mqtt::enqueue_measurement(message1);
+    mqtt::enqueue_measurement(message2);
+    mqtt::enqueue_measurement(message3);
 }
