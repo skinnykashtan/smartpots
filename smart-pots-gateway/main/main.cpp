@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <nvs_flash.h>
 #include "esp_log.h"
+#include "mqtt_connection.h"
 #include "wifi_connection.h"
 
 namespace {
@@ -17,4 +18,5 @@ extern "C" void app_main(void) {
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi::wifi_init_sta();
+    mqtt::mqtt_init();
 }
