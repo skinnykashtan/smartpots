@@ -4,6 +4,7 @@
 #include "mqtt_connection.h"
 #include "wifi_connection.h"
 #include "measurement.h"
+#include "esp-now_connection.h"
 
 Message message1 {
     .plant_id = 1,
@@ -40,7 +41,5 @@ extern "C" void app_main(void) {
     mqtt::mqtt_init();
     mqtt::mqtt_publisher_init();
 
-    mqtt::enqueue_measurement(message1);
-    mqtt::enqueue_measurement(message2);
-    mqtt::enqueue_measurement(message3);
+    espnow::espnow_init();
 }
