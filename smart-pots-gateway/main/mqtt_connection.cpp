@@ -5,7 +5,7 @@
 
 namespace mqtt {
 
-    constexpr const char* TAG = "MQTT";
+    constexpr char* TAG = "MQTT";
 
     namespace {
 
@@ -106,7 +106,8 @@ namespace mqtt {
 
         void mqtt_publisher_task(void* arg) {
             auto queue = static_cast<QueueHandle_t>(arg);
-            Message message;
+            Message message{};
+            char payload[16];
 
             while (true) {
                 BaseType_t ret = xQueueReceive(
@@ -125,7 +126,14 @@ namespace mqtt {
                 portMAX_DELAY
                 );
 
-                esp_mqtt_client_publish(client, "smartpots/saloon/plant1", message.data, 0, 1, true);
+                snprintf(
+                    payload,
+                    sizeof(payload),
+                    "%ld",
+                    static_cast<long>(message.data)
+                );
+
+                esp_mqtt_client_publish(client, "smartpots/saloon/plant1", payload, 0, 1, true);
             }
         }
 

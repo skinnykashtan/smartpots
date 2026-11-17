@@ -10,8 +10,8 @@
 namespace wifi {
 
     namespace {
-        constexpr const char* ssid = CONFIG_ESP_WIFI_SSID;
-        constexpr const char* password = CONFIG_ESP_WIFI_PASSWORD;
+        constexpr char* ssid = CONFIG_ESP_WIFI_SSID;
+        constexpr char* password = CONFIG_ESP_WIFI_PASSWORD;
         constexpr int max_retries = CONFIG_ESP_MAXIMUM_RETRY;
 
         constexpr EventBits_t WIFI_CONNECTED_BIT = BIT0;
@@ -20,7 +20,7 @@ namespace wifi {
         EventGroupHandle_t wifi_event_group = nullptr;
         int retry_count = 0;
 
-        constexpr const char* TAG = "WIFI";
+        constexpr char* TAG = "WIFI";
 
         void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
             if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -95,6 +95,16 @@ namespace wifi {
 
         if (bits & WIFI_CONNECTED_BIT) {
             ESP_LOGI(TAG, "connected to AP SSID: %s", CONFIG_ESP_WIFI_SSID);
+
+            uint8_t channel = 0;
+            wifi_second_chan_t second_channel;
+
+            ESP_ERROR_CHECK(
+                esp_wifi_get_channel(&channel, &second_channel)
+            );
+
+            ESP_LOGI("WIFI", "Gateway channel: %u", channel);
+
             return true;
         }
         if (bits & WIFI_FAIL_BIT) {

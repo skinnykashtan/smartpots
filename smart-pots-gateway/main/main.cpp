@@ -6,24 +6,8 @@
 #include "measurement.h"
 #include "esp-now_connection.h"
 
-Message message1 {
-    .plant_id = 1,
-    .data = "33"
-};
-
-Message message2 {
-    .plant_id = 2,
-    .data = "22"
-};
-
-Message message3 {
-    .plant_id = 3,
-    .data = "11"
-};
-
-
 namespace {
-    constexpr const char* TAG = "MAIN";
+    constexpr char* TAG = "MAIN";
 }
 
 extern "C" void app_main(void) {
