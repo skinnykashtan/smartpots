@@ -7,7 +7,7 @@
 #include "esp-now_connection.h"
 
 namespace {
-    constexpr char* TAG = "MAIN";
+    constexpr const char* TAG = "MAIN";
 }
 
 extern "C" void app_main(void) {
@@ -25,5 +25,5 @@ extern "C" void app_main(void) {
     mqtt::mqtt_init();
     mqtt::mqtt_publisher_init();
 
-    espnow::espnow_init();
+    espnow::initEspNow();
 }

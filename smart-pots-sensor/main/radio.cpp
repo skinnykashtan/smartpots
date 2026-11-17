@@ -3,6 +3,7 @@
 #include "measurement.h"
 #include "esp_wifi.h"
 #include <cstring>
+#include "espnow.h"
 
 namespace {
 
@@ -23,7 +24,11 @@ void radio_init() {
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE));
 
-    ESP_ERROR_CHECK(esp_now_init());
+
+    espnow_config_t config = ESPNOW_INIT_CONFIG_DEFAULT();
+    config.sec_enable = 1;
+
+    ESP_ERROR_CHECK(espnow_init(&config));
 
     esp_now_peer_info_t peer_info{};
 
@@ -32,7 +37,7 @@ void radio_init() {
     peer_info.ifidx = WIFI_IF_STA;
     peer_info.encrypt = false;
 
-    ESP_ERROR_CHECK(esp_now_add_peer(&peer_info));
+    // ESP_ERROR_CHECK(esp_now_add_peer(&peer_info));
 }
 
 bool radio_send(int raw_data, uint8_t id) {
@@ -41,8 +46,18 @@ bool radio_send(int raw_data, uint8_t id) {
         .data = raw_data
     };
 
-    return esp_now_send(gateway_broadcast_mac,
-        reinterpret_cast<const uint8_t*>(&message),
-        sizeof(Message)
+    espnow_frame_head_t frame_config = ESPNOW_FRAME_CONFIG_DEFAULT();
+
+    // return esp_now_send(gateway_broadcast_mac,
+    //     reinterpret_cast<const uint8_t*>(&message),
+    //     sizeof(Message)
+    //     ) == ESP_OK;
+
+    return espnow_send(ESPNOW_DATA_TYPE_DATA,
+        gateway_broadcast_mac,
+        &message,
+        sizeof(Message),
+        &frame_config,
+        1000
         ) == ESP_OK;
 }

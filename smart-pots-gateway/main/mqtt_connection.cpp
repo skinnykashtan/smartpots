@@ -5,7 +5,7 @@
 
 namespace mqtt {
 
-    constexpr char* TAG = "MQTT";
+    constexpr const char* TAG = "MQTT";
 
     namespace {
 
