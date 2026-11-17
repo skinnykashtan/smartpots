@@ -1,13 +1,10 @@
 #ifndef SMART_POTS_GATEWAY_RADIO_H
 #define SMART_POTS_GATEWAY_RADIO_H
 #include <cstdio>
-
-struct Payload {
-    uint16_t raw;
-};
+#include "measurement.h"
 
 void radio_init();
-int radio_send(Payload payload);
+bool radio_send(int raw_data, uint8_t id);
 
 
 #endif //SMART_POTS_GATEWAY_RADIO_H
