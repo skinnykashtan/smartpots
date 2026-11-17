@@ -3,7 +3,7 @@
 
 namespace espnow {
 
-    void espnow_init();
+    void initEspNow();
 
 }
 

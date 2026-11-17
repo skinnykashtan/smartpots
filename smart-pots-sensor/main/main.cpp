@@ -6,7 +6,7 @@
 #include "soil_sensor.h"
 #include <nvs_flash.h>
 
-constexpr char* TAG = "SENSOR";
+constexpr const char* TAG = "SENSOR";
 
 extern "C" void app_main(void) {
     ESP_ERROR_CHECK(nvs_flash_init());

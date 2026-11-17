@@ -10,8 +10,8 @@
 namespace wifi {
 
     namespace {
-        constexpr char* ssid = CONFIG_ESP_WIFI_SSID;
-        constexpr char* password = CONFIG_ESP_WIFI_PASSWORD;
+        constexpr const char* ssid = CONFIG_ESP_WIFI_SSID;
+        constexpr const char* password = CONFIG_ESP_WIFI_PASSWORD;
         constexpr int max_retries = CONFIG_ESP_MAXIMUM_RETRY;
 
         constexpr EventBits_t WIFI_CONNECTED_BIT = BIT0;
@@ -20,7 +20,7 @@ namespace wifi {
         EventGroupHandle_t wifi_event_group = nullptr;
         int retry_count = 0;
 
-        constexpr char* TAG = "WIFI";
+        constexpr const char* TAG = "WIFI";
 
         void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
             if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
