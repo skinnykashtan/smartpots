@@ -1,7 +1,7 @@
 #include "mqtt_connection.h"
-
 #include "esp_log.h"
 #include "mqtt_client.h"
+#include "freertos/queue.h"
 
 namespace mqtt {
 
