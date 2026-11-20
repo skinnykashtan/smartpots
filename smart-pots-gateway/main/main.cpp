@@ -5,6 +5,7 @@
 #include "wifi_connection.h"
 #include "measurement.h"
 #include "esp-now_connection.h"
+#include "PairingManager.h"
 
 namespace {
     constexpr const char* TAG = "MAIN";
@@ -26,4 +27,7 @@ extern "C" void app_main(void) {
     mqtt::mqtt_publisher_init();
 
     espnow::initEspNow();
+
+    PairingManager pairingManager;
+    pairingManager.scan();
 }
