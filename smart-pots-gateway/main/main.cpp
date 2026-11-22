@@ -29,5 +29,17 @@ extern "C" void app_main(void) {
     espnow::initEspNow();
 
     PairingManager pairingManager;
-    pairingManager.scan();
+
+    ESP_LOGI(TAG, "Before scan");
+
+    esp_err_t res = pairingManager.scan();
+
+    ESP_LOGI(TAG, "After scan: %s", esp_err_to_name(res));
+
+    if (res == ESP_OK) {
+        pairingManager.printMAC();
+        pairingManager.start();
+    } else {
+        ESP_LOGW(TAG, "no devices to start pairing");
+    }
 }

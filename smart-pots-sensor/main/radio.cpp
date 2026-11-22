@@ -22,7 +22,7 @@ void radio_init() {
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_ERROR_CHECK(esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE));
+    ESP_ERROR_CHECK(esp_wifi_set_channel(11, WIFI_SECOND_CHAN_NONE));
 
 
     espnow_config_t config = ESPNOW_INIT_CONFIG_DEFAULT();
@@ -33,7 +33,7 @@ void radio_init() {
     esp_now_peer_info_t peer_info{};
 
     memcpy(peer_info.peer_addr, gateway_broadcast_mac, sizeof(gateway_broadcast_mac));
-    peer_info.channel = 1;
+    peer_info.channel = 11;
     peer_info.ifidx = WIFI_IF_STA;
     peer_info.encrypt = false;
 
