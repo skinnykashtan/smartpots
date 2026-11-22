@@ -11,11 +11,27 @@ constexpr const char* TAG = "SENSOR";
 constexpr const char* pop = "cos";
 
 extern "C" void app_main(void) {
-    ESP_ERROR_CHECK(nvs_flash_init());
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    // ESP_ERROR_CHECK(espnow_erase_key());
+    ESP_ERROR_CHECK(espnow_storage_init());
 
     soil_sensor_init();
     radio_init();
-    espnow_sec_responder_start(pop);
+
+    uint8_t key_info[APP_KEY_LEN];
+    if (espnow_get_key(key_info) != ESP_OK) {
+        ESP_LOGI(TAG, "No APP KEY in NVS, waiting for pairing...");
+        espnow_sec_responder_start(pop);
+    } else {
+        ESP_ERROR_CHECK(espnow_set_key(key_info));
+        ESP_LOGI(TAG, "APP KEY found in NVS.");
+    }
 
     // while (true) {
     //     int raw = soil_sensor_read();

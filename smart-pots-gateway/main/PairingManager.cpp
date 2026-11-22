@@ -99,5 +99,11 @@ esp_err_t PairingManager::start() {
 
     espnow_sec_initiator_result_free(&res);
 
+    esp_err_t err = espnow_set_key(key_info);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "error during saving APP_KEY to NVS");
+        return err;
+    }
+
     return ESP_OK;
 }
