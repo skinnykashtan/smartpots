@@ -48,11 +48,6 @@ bool radio_send(int raw_data, uint8_t id) {
 
     espnow_frame_head_t frame_config = ESPNOW_FRAME_CONFIG_DEFAULT();
 
-    // return esp_now_send(gateway_broadcast_mac,
-    //     reinterpret_cast<const uint8_t*>(&message),
-    //     sizeof(Message)
-    //     ) == ESP_OK;
-
     return espnow_send(ESPNOW_DATA_TYPE_DATA,
         gateway_broadcast_mac,
         &message,
